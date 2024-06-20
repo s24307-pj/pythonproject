@@ -2,12 +2,13 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 from data_loader import DataLoader
 from visualizer import Visualizer
+from data_processor import DataProcessor
 
 class UserInterface:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("Data Analysis Application")
-        self.root.geometry("600x400")
+        self.root.geometry("800x600")
         self.data = None
 
         self.create_widgets()
@@ -21,6 +22,36 @@ class UserInterface:
 
         self.display_button = tk.Button(self.root, text="Display Data", command=self.display_data)
         self.display_button.pack()
+
+        self.filter_label = tk.Label(self.root, text="Filter Column:")
+        self.filter_label.pack()
+        self.filter_column = ttk.Combobox(self.root)
+        self.filter_column.pack()
+        self.filter_column.bind("<<ComboboxSelected>>", self.update_filter_values)
+        self.filter_value_label = tk.Label(self.root, text="Filter Value:")
+        self.filter_value_label.pack()
+        self.filter_value = ttk.Combobox(self.root)
+        self.filter_value.pack()
+        self.filter_button = tk.Button(self.root, text="Filter Data", command=self.filter_data)
+        self.filter_button.pack()
+
+        self.sort_label = tk.Label(self.root, text="Sort Column:")
+        self.sort_label.pack()
+        self.sort_column = ttk.Combobox(self.root)
+        self.sort_column.pack()
+        self.sort_order_label = tk.Label(self.root, text="Sort Order (asc/desc):")
+        self.sort_order_label.pack()
+        self.sort_order = ttk.Combobox(self.root, values=['asc', 'desc'])
+        self.sort_order.pack()
+        self.sort_button = tk.Button(self.root, text="Sort Data", command=self.sort_data)
+        self.sort_button.pack()
+
+        self.convert_label = tk.Label(self.root, text="Convert Categorical Column:")
+        self.convert_label.pack()
+        self.convert_column = ttk.Combobox(self.root)
+        self.convert_column.pack()
+        self.convert_button = tk.Button(self.root, text="Convert Column", command=self.convert_data)
+        self.convert_button.pack()
 
         self.plot_label = tk.Label(self.root, text="Plot Type (count/scatter/histogram/box):")
         self.plot_label.pack()
@@ -89,7 +120,55 @@ class UserInterface:
 
             for i in range(len(self.data.columns)):
                 data_frame.grid_columnconfigure(i, weight=1)
+        else:
+            messagebox.showerror("Error", "No data loaded.")
 
+    def filter_data(self):
+        if self.data is not None:
+            column = self.filter_column.get()
+            value = self.filter_value.get()
+            if column and value:
+                try:
+                    self.data = DataProcessor.filter_data(self.data, column, value)
+                    self.update_comboboxes()  # Update the comboboxes with the filtered data
+                    messagebox.showinfo("Info", f"Data filtered by {column} = {value}.")
+                except Exception as e:
+                    messagebox.showerror("Error", f"Failed to filter data: {str(e)}")
+            else:
+                messagebox.showerror("Error", "Filter column and value must be selected.")
+        else:
+            messagebox.showerror("Error", "No data loaded.")
+
+    def sort_data(self):
+        if self.data is not None:
+            column = self.sort_column.get()
+            order = self.sort_order.get()
+            if column and order:
+                try:
+                    ascending = order.lower() == 'asc'
+                    self.data = DataProcessor.sort_data(self.data, column, ascending)
+                    self.update_comboboxes()  # Update the comboboxes with the sorted data
+                    messagebox.showinfo("Info",
+                                        f"Data sorted by {column} in {'ascending' if ascending else 'descending'} order.")
+                except Exception as e:
+                    messagebox.showerror("Error", f"Failed to sort data: {str(e)}")
+            else:
+                messagebox.showerror("Error", "Sort column and order must be selected.")
+        else:
+            messagebox.showerror("Error", "No data loaded.")
+
+    def convert_data(self):
+        if self.data is not None:
+            column = self.convert_column.get()
+            if column:
+                try:
+                    self.data = DataProcessor.convert_categorical_to_numeric(self.data, column)
+                    self.update_comboboxes()  # Update the comboboxes with the converted data
+                    messagebox.showinfo("Info", f"Categorical column {column} converted to numeric.")
+                except Exception as e:
+                    messagebox.showerror("Error", f"Failed to convert column: {str(e)}")
+            else:
+                messagebox.showerror("Error", "Convert column must be selected.")
         else:
             messagebox.showerror("Error", "No data loaded.")
 
@@ -134,6 +213,16 @@ class UserInterface:
 
     def update_comboboxes(self):
         columns = self.data.columns.tolist()
+        self.filter_column['values'] = columns
+        if columns:
+            self.filter_value['values'] = self.data[columns[0]].unique().tolist()
+        self.sort_column['values'] = columns
+        self.convert_column['values'] = columns
         self.plot_column['values'] = columns
         self.plot_x_column['values'] = columns
         self.plot_y_column['values'] = columns
+
+    def update_filter_values(self, event):
+        column = self.filter_column.get()
+        if column:
+            self.filter_value['values'] = self.data[column].unique().tolist()

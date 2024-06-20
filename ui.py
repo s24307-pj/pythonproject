@@ -8,6 +8,7 @@ class UserInterface:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("Data Analysis Application")
+        self.root.geometry("800x600")
         self.data = None
 
         self.create_widgets()
@@ -51,9 +52,9 @@ class UserInterface:
         self.convert_button = tk.Button(self.root, text="Convert Column", command=self.convert_data)
         self.convert_button.pack()
 
-        self.plot_label = tk.Label(self.root, text="Plot Type (count/scatter):")
+        self.plot_label = tk.Label(self.root, text="Plot Type (count/scatter/histogram/box):")
         self.plot_label.pack()
-        self.plot_type = ttk.Combobox(self.root, values=['count', 'scatter'])
+        self.plot_type = ttk.Combobox(self.root, values=['count', 'scatter', 'histogram', 'box'])
         self.plot_type.pack()
         self.plot_column_label = tk.Label(self.root, text="Plot Column:")
         self.plot_column_label.pack()
@@ -82,6 +83,8 @@ class UserInterface:
                 messagebox.showinfo("Info", "Data loaded successfully.")
             else:
                 messagebox.showerror("Error", "Failed to load data.")
+        else:
+            messagebox.showerror("Error", "No file selected.")
 
     def display_columns(self):
         if self.data is not None:
@@ -124,47 +127,90 @@ class UserInterface:
         if self.data is not None:
             column = self.filter_column.get()
             value = self.filter_value.get()
-            self.data = DataProcessor.filter_data(self.data, column, value)
-            messagebox.showinfo("Info", f"Data filtered by {column} = {value}.")
+            if column and value:
+                try:
+                    self.data = DataProcessor.filter_data(self.data, column, value)
+                    messagebox.showinfo("Info", f"Data filtered by {column} = {value}.")
+                except Exception as e:
+                    messagebox.showerror("Error", f"Failed to filter data: {str(e)}")
+            else:
+                messagebox.showerror("Error", "Filter column and value must be selected.")
         else:
             messagebox.showerror("Error", "No data loaded.")
 
     def sort_data(self):
         if self.data is not None:
             column = self.sort_column.get()
-            order = self.sort_order.get().lower() == 'asc'
-            self.data = DataProcessor.sort_data(self.data, column, order)
-            messagebox.showinfo("Info", f"Data sorted by {column} in {'ascending' if order else 'descending'} order.")
+            order = self.sort_order.get()
+            if column and order:
+                try:
+                    ascending = order.lower() == 'asc'
+                    self.data = DataProcessor.sort_data(self.data, column, ascending)
+                    messagebox.showinfo("Info", f"Data sorted by {column} in {'ascending' if ascending else 'descending'} order.")
+                except Exception as e:
+                    messagebox.showerror("Error", f"Failed to sort data: {str(e)}")
+            else:
+                messagebox.showerror("Error", "Sort column and order must be selected.")
         else:
             messagebox.showerror("Error", "No data loaded.")
 
     def convert_data(self):
         if self.data is not None:
             column = self.convert_column.get()
-            self.data = DataProcessor.convert_categorical_to_numeric(self.data, column)
-            messagebox.showinfo("Info", f"Categorical column {column} converted to numeric.")
+            if column:
+                try:
+                    self.data = DataProcessor.convert_categorical_to_numeric(self.data, column)
+                    messagebox.showinfo("Info", f"Categorical column {column} converted to numeric.")
+                except Exception as e:
+                    messagebox.showerror("Error", f"Failed to convert column: {str(e)}")
+            else:
+                messagebox.showerror("Error", "Convert column must be selected.")
         else:
             messagebox.showerror("Error", "No data loaded.")
 
     def plot_data(self):
         if self.data is not None:
             plot_type = self.plot_type.get()
-            if plot_type == 'count':
-                column = self.plot_column.get()
-                Visualizer.plot_count(self.data, column)
-            elif plot_type == 'scatter':
-                x_column = self.plot_x_column.get()
-                y_column = self.plot_y_column.get()
-                Visualizer.plot_scatter(self.data, x_column, y_column)
+            if plot_type:
+                try:
+                    if plot_type == 'count':
+                        column = self.plot_column.get()
+                        if column:
+                            Visualizer.plot_count(self.data, column)
+                        else:
+                            messagebox.showerror("Error", "Plot column must be selected for count plot.")
+                    elif plot_type == 'scatter':
+                        x_column = self.plot_x_column.get()
+                        y_column = self.plot_y_column.get()
+                        if x_column and y_column:
+                            Visualizer.plot_scatter(self.data, x_column, y_column)
+                        else:
+                            messagebox.showerror("Error", "Both X and Y columns must be selected for scatter plot.")
+                    elif plot_type == 'histogram':
+                        column = self.plot_column.get()
+                        if column:
+                            Visualizer.plot_histogram(self.data, column)
+                        else:
+                            messagebox.showerror("Error", "Plot column must be selected for histogram.")
+                    elif plot_type == 'box':
+                        column = self.plot_column.get()
+                        if column:
+                            Visualizer.plot_box(self.data, column)
+                        else:
+                            messagebox.showerror("Error", "Plot column must be selected for box plot.")
+                    else:
+                        messagebox.showerror("Error", "Invalid plot type.")
+                except Exception as e:
+                    messagebox.showerror("Error", f"Failed to generate plot: {str(e)}")
             else:
-                messagebox.showerror("Error", "Invalid plot type.")
+                messagebox.showerror("Error", "Plot type must be selected.")
         else:
             messagebox.showerror("Error", "No data loaded.")
 
     def update_comboboxes(self):
         columns = self.data.columns.tolist()
         self.filter_column['values'] = columns
-        self.filter_value['values'] = self.data[columns[0]].unique().tolist()
+        self.filter_value['values'] = self.data[columns[0]].unique().tolist() if columns else []
         self.sort_column['values'] = columns
         self.convert_column['values'] = columns
         self.plot_column['values'] = columns

@@ -1,7 +1,7 @@
+# visualizer.py
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
-
 
 class Visualizer:
     @staticmethod
@@ -21,4 +21,21 @@ class Visualizer:
         plt.title(f'Scatter Plot between {x_column} and {y_column}')
         plt.xlabel(x_column)
         plt.ylabel(y_column)
+        plt.show()
+
+    @staticmethod
+    def plot_histogram(df: pd.DataFrame, column: str, bins=10):
+        plt.figure(figsize=(12, 6))
+        sns.histplot(data=df, x=column, bins=bins, kde=True)
+        plt.title(f'Histogram for {column}')
+        plt.xlabel(column)
+        plt.ylabel('Frequency')
+        plt.show()
+
+    @staticmethod
+    def plot_box(df: pd.DataFrame, column: str):
+        plt.figure(figsize=(12, 6))
+        sns.boxplot(data=df, y=column)
+        plt.title(f'Box Plot for {column}')
+        plt.ylabel(column)
         plt.show()
